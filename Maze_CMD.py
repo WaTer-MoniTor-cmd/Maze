@@ -3,20 +3,26 @@ import time
 import keyboard
 
 class maze:
-    def __init__(self) -> None:
-        self.maze = [
-                    ["X", "X", "X", "X", "X", "X", "X"],
-                    ["X", " ", "X", " ", "X", " ", " "],
-                    ["X", " ", " ", " ", "X", " ", "X"],
-                    ["X", " ", "X", " ", "X", " ", "X"],
-                    ["X", " ", "X", " ", " ", " ", "X"],
-                    ["X", " ", "X", "X", "X", " ", "X"],
-                    ]
-        self.ply = pos(5, 1)
-        self.end = pos(1, 6)
-        self.maze[self.ply.y][self.ply.x] = "P"
-        self.maze[self.end.y][self.end.x] = "E"
-    
+    def __init__(self, filename) -> None:
+        self.maze, self.ply, self.end = self.load_maze_from_file(filename)
+        
+    def load_maze_from_file(self, filename):
+        maze = []
+        start = None
+        end = None
+        with open(filename, "r") as file:
+            for y, line in enumerate(file):
+                row = list(line.strip())  # อ่านแต่ละบรรทัดและแปลงเป็น list
+                maze.append(row)
+
+                # หา P (ตำแหน่งเริ่มต้น) และ E (ทางออก)
+                if "P" in row:
+                    start = pos(y, row.index("P"))
+                if "E" in row:
+                    end = pos(y, row.index("E"))
+        
+        return maze, start, end
+
     def isInBound(self, y, x):
         if y>=0 and x>=0 and y<len(self.maze) and x<len(self.maze[0]):
             return True
@@ -32,14 +38,14 @@ class maze:
             print("")
         print("\n\n\n")
     
-    def printEND(self): #เคลียร์หน้าจอหลังแลเวปลิ้นCongraturation
+    def printEND(self): #เคลียร์หน้าจอหลังแล้วปลิ้นCongraturation
         os.system("cls")
         print("\n\n\n")
         print(">>>>> Congraturation!!! <<<<<")
         print("\n\n\n")
         keyboard.wait("")
 
-    #def move_up(self):
+    def move_up(self):
         next_move = pos(self.ply.y-1, self.ply.x)
         if self.isInBound(next_move.y,next_move.x):
             if self.maze[next_move.y][next_move.x] == " ":
@@ -52,7 +58,7 @@ class maze:
                 return False
         return True
     
-    #def move_down(self):
+    def move_down(self):
         next_move = pos(self.ply.y+1, self.ply.x)
         if self.isInBound(next_move.y,next_move.x):
             if self.maze[next_move.y][next_move.x] == " ":
@@ -65,7 +71,7 @@ class maze:
                 return False
         return True
 
-    #def move_left(self):
+    def move_left(self):
         next_move = pos(self.ply.y, self.ply.x-1)
         if self.isInBound(next_move.y,next_move.x):
             if self.maze[next_move.y][next_move.x] == " ":
@@ -78,7 +84,7 @@ class maze:
                 return False
         return True
 
-    #def move_right(self):
+    def move_right(self):
         next_move = pos(self.ply.y, self.ply.x+1)
         if self.isInBound(next_move.y,next_move.x):
             if self.maze[next_move.y][next_move.x] == " ":
@@ -109,6 +115,7 @@ class maze:
         while stack:
             y, x = stack.pop()  # หยิบตำแหน่งสุดท้ายออกมา (DFS)
             if (y, x) in visited:
+                time.sleep(0.25)
                 continue
             visited.add((y, x))
             
@@ -120,7 +127,7 @@ class maze:
                 next_y, next_x = y + dy, x + dx
                 if (next_y, next_x) not in visited and self.isInBound(next_y, next_x) and self.maze[next_y][next_x] in [" ", "E"]:
                     stack.append((next_y, next_x))
-                time.sleep(0.25)
+            time.sleep(0.5)
 class pos:
     def __init__(self) -> None:
         self.y = None
@@ -131,8 +138,9 @@ class pos:
         self.x = x
 
 if __name__ == '__main__':
-
-    m = maze()
+    maze_file = "Maze/Maze1.txt"
+    m = maze(maze_file)
     m.print()
     m.solve_maze()
+  
     
