@@ -115,7 +115,6 @@ class maze:
         while stack:
             y, x = stack.pop()  # หยิบตำแหน่งสุดท้ายออกมา (DFS)
             if (y, x) in visited:
-                time.sleep(0.25)
                 continue
             visited.add((y, x))
             

@@ -1,72 +1,134 @@
-import os
-import time
+import turtle
 
-class maze:
-    def __init__(self) -> None:
-        self.maze = [
-                    ["X", "X", "X", "X", "X", "X", "X"],
-                    ["X", " ", " ", " ", "X", " ", "X"],
-                    ["X", " ", "X", " ", "X", " ", "E"],
-                    ["X", " ", "X", " ", "X", " ", "X"],
-                    ["X", " ", "X", " ", " ", " ", "X"],
-                    ["X", "P", "X", "X", "X", "X", "X"],
-                    ]
-        self.ply = pos(5, 1)  # จุดเริ่มต้น P
-        self.end = pos(2, 6)  # จุดสิ้นสุด E
-    
-    def isInBound(self, y, x):
-        return 0 <= y < len(self.maze) and 0 <= x < len(self.maze[0])
-    
-    def print(self):
-        os.system("cls" if os.name == "nt" else "clear")
-        print("\n\n\n")
-        for row in self.maze:
-            print(" ".join(row))
-        print("\n\n\n")
-        time.sleep(0.25)
-    
-    def printEND(self):
-        os.system("cls" if os.name == "nt" else "clear")
-        print("\n\n\n")
-        print(">>>>> Congraturation!!! <<<<<")
-        print("\n\n\n")
-    
-    def move(self, y, x):
-        if self.maze[y][x] == "E":
-            self.printEND()
-            return False
-        self.maze[self.ply.y][self.ply.x] = " "  # ลบตำแหน่งเดิม
-        self.maze[y][x] = "P"  # วางตำแหน่งใหม่
-        self.ply = pos(y, x)
-        self.print()
+
+# กำหนดค่าคงที่แทนสัญลักษณ์ในเขาวงกต
+OBSTACLE = 'X'     # สิ่งกีดขวาง
+TRIED = '.'        # จุดที่ลองแล้ว
+PART_OF_PATH = 'P' # เส้นทางที่ถูกต้อง
+DEAD_END = 'X'     # ทางตัน
+
+
+
+
+class Maze:
+    def __init__(self, maze_file_name):
+        self.maze_list = []
+        self.start_row = 0
+        self.start_col = 0
+
+        with open(maze_file_name, 'r') as maze_file:
+            for row_idx, line in enumerate(maze_file):
+                row_list = list(line.strip())
+                if 'P' in row_list:
+                    self.start_row = row_idx
+                    self.start_col = row_list.index('P')
+                self.maze_list.append(row_list)
+
+        self.rows_in_maze = len(self.maze_list)
+        self.columns_in_maze = len(self.maze_list[0])
+
+
+        self.x_translate = -self.columns_in_maze / 2
+        self.y_translate = self.rows_in_maze / 2
+        
+        self.t = turtle.Turtle()
+        self.t.shape('turtle')
+        self.wn = turtle.Screen()
+        self.wn.setworldcoordinates(- (self.columns_in_maze - 1) / 2 - .5,
+                                    - (self.rows_in_maze - 1) / 2 - .5,
+                                    (self.columns_in_maze - 1) / 2 + .5,
+                                    (self.rows_in_maze - 1) / 2 + .5)
+
+
+        
+        
+
+    def draw_maze(self):
+        self.t.speed(0)
+        for y in range(self.rows_in_maze):
+            for x in range(self.columns_in_maze):
+                if self.maze_list[y][x] == OBSTACLE:
+                    self.draw_centered_box(x + self.x_translate, -y + self.y_translate, 'orange')
+        self.t.color('black')
+        self.t.fillcolor('blue')
+
+    def draw_centered_box(self, x, y, color):
+        self.t.up()
+        self.t.goto(x - .5, y - .5)
+        self.t.color(color)
+        self.t.fillcolor(color)
+        self.t.setheading(90)
+        self.t.down()
+        self.t.begin_fill()
+        for _ in range(4):
+            self.t.forward(1)
+            self.t.right(90)
+        self.t.end_fill()
+
+    def move_turtle(self, x, y):
+        self.t.up()
+        self.t.setheading(self.t.towards(x + self.x_translate, -y + self.y_translate))
+        self.t.goto(x + self.x_translate, -y + self.y_translate)
+
+    def drop_bread_crumb(self, color):
+        self.t.dot(10, color)
+
+    def update_position(self, row, col, val=None):
+        if val:
+            self.maze_list[row][col] = val
+            self.move_turtle(col, row)
+
+        color_map = {
+            PART_OF_PATH: 'green',
+            OBSTACLE: 'red',
+            TRIED: 'black',
+            DEAD_END: 'red'
+        }
+        
+        if val in color_map:
+            self.drop_bread_crumb(color_map[val])
+
+    def is_exit(self, row, col):
+        return (row == 0 or row == self.rows_in_maze - 1 or 
+                col == 0 or col == self.columns_in_maze - 1)
+
+    def __getitem__(self, idx):
+        return self.maze_list[idx]
+
+def search_from(maze, start_row, start_column):
+    maze.update_position(start_row, start_column)
+
+    # ฐานของการหยุดทำงาน (Base Cases)
+    if maze[start_row][start_column] == OBSTACLE:
+        return False
+
+    if maze[start_row][start_column] in [TRIED, DEAD_END]:
+        return False
+
+    if maze.is_exit(start_row, start_column):
+        maze.update_position(start_row, start_column, PART_OF_PATH)
         return True
-    
-    def solve_maze(self):
-        stack = [(self.ply.y, self.ply.x)]  # เริ่มต้นที่ P
-        visited = set()
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # บน, ล่าง, ซ้าย, ขวา
 
-        while stack:
-            y, x = stack.pop()  # หยิบตำแหน่งสุดท้ายออกมา (DFS)
-            if (y, x) in visited:
-                continue
-            visited.add((y, x))
-            
-            if not self.move(y, x):  # ถ้าเจอ E ให้หยุด
-                break
+    maze.update_position(start_row, start_column, TRIED)
 
-            # เพิ่มตำแหน่งที่สามารถเดินได้ลงใน Stack
-            for dy, dx in directions:
-                next_y, next_x = y + dy, x + dx
-                if (next_y, next_x) not in visited and self.isInBound(next_y, next_x) and self.maze[next_y][next_x] in [" ", "E"]:
-                    stack.append((next_y, next_x))
+    # ลองไปทุกทิศทาง (ขึ้น, ลง, ซ้าย, ขวา)
+    found = (search_from(maze, start_row - 1, start_column) or
+             search_from(maze, start_row + 1, start_column) or
+             search_from(maze, start_row, start_column - 1) or
+             search_from(maze, start_row, start_column + 1))
 
-class pos:
-    def __init__(self, y, x) -> None:
-        self.y = y
-        self.x = x
+    if found:
+        maze.update_position(start_row, start_column, PART_OF_PATH)
+    else:
+        maze.update_position(start_row, start_column, DEAD_END)
 
-if __name__ == '__main__':
-    m = maze()
-    m.print()
-    m.solve_maze()
+    return found
+
+if __name__ == "__main__":
+    my_maze = Maze('Maze/Maze1.txt')
+    my_maze.draw_maze()
+    my_maze.update_position(my_maze.start_row, my_maze.start_col)
+
+    search_from(my_maze, my_maze.start_row, my_maze.start_col)
+
+    turtle.done()
